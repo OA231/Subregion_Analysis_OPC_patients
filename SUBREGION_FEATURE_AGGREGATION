@@ -1,0 +1,50 @@
+function subregion_feature_aggregation(inputFile, outputFile)
+% SUBREGION_FEATURE_AGGREGATION Computes variance of subregion features for each patient.
+%
+% This function reads an Excel file containing patient subregion features,
+% calculates the variance of each feature across subregions for each patient,
+% and saves the results to a new Excel file.
+%
+% Usage:
+%   subregion_feature_aggregation('Path_to_Input_File.xlsx', 'Path_to_Output_File.xlsx')
+%
+% Inputs:
+%   - inputFile  : Path to the input Excel file
+%   - outputFile : Path to save the aggregated variance results
+%
+% Example:
+%   subregion_feature_aggregation('data.xlsx', 'aggregated_data.xlsx')
+
+    % Load the data from the Excel file with preserved variable names
+    dataTable = readtable(inputFile, 'VariableNamingRule', 'preserve');
+
+    % Extract feature columns, assuming the first three columns are PatientID, SubregionID, and another non-numeric column, adjust if needed
+    subregion_features = dataTable{:, 4:end};  
+    patientIDs = dataTable.PatientID;  % Extract patient IDs
+
+    % Identify unique patients
+    [uniquePatients, ~, idxPatients] = unique(patientIDs);  
+    numFeatures = size(subregion_features, 2);
+    numPatients = length(uniquePatients);
+
+    % Initialize matrix to store aggregated (variance) features for each patient
+    aggregated_features = zeros(numPatients, numFeatures);
+
+    % Calculate variance of subregion features for each patient
+    for i = 1:numPatients
+        patientSubregions = subregion_features(idxPatients == i, :);  % Extract subregions for this patient
+        aggregated_features(i, :) = var(patientSubregions, 0, 1);  % Compute variance across subregions
+    end
+
+    % Convert aggregated data to a table with proper column names, preserving variable names
+    aggregated_table = array2table(aggregated_features, 'VariableNames', strcat('Var_', dataTable.Properties.VariableNames(4:end)));
+
+    % Add PatientID column
+    aggregated_table = [table(uniquePatients, 'VariableNames', {'PatientID'}), aggregated_table];
+
+    % Save the aggregated dataset to a new Excel file with preserved variable names
+    writetable(aggregated_table, outputFile, 'WriteVariableNames', true);
+
+    disp(['Aggregated dataset saved to: ', outputFile]);
+
+end
